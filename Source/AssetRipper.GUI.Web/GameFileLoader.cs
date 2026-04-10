@@ -60,15 +60,15 @@ public static class GameFileLoader
 	{
 		if (IsLoaded && IsValidExportDirectory(path))
 		{
-			if (IsNonEmptyDirectory(path))
+			// Change behavior, create folder inside the selected folder instead of deleting the selected folder
+			string originalName = "Rift";
+			string folderName = originalName;
+			int i = 0;
+			while (Directory.Exists(Path.Combine(path, folderName)))
 			{
-				if (!await UserConsentsToDeletion())
-				{
-					Logger.Info(LogCategory.Export, "User declined to delete existing export directory. Aborting export.");
-					return;
-				}
-				Directory.Delete(path, true);
+				folderName = $"{originalName}_{i++}";
 			}
+			path = Path.Combine(path, folderName);
 
 			Directory.CreateDirectory(path);
 			ExportHandler.Export(GameData, path, LocalFileSystem.Instance);

@@ -8,7 +8,7 @@ public sealed record class ImportSettings
 	/// <summary>
 	/// The level of scripts to export
 	/// </summary>
-	public ScriptContentLevel ScriptContentLevel { get; set; } = ScriptContentLevel.Level2;
+	public ScriptContentLevel ScriptContentLevel { get; set; } = ScriptContentLevel.Level1;
 
 	/// <summary>
 	/// Including the streaming assets directory can cause some games to fail while exporting.
