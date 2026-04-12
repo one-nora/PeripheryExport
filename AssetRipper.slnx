@@ -62,6 +62,8 @@
     <File Path=".github/workflows/publish.yml" />
     <File Path=".github/workflows/test.yml" />
   </Folder>
+  <Project Path="AssetRipper.PackageGuid.Generator/AssetRipper.PackageGuid.Generator.csproj" />
+  <Project Path="AssetRipper.PackageGuid/AssetRipper.PackageGuid.csproj" />
   <Project Path="Source/AssetRipper.AssemblyDumper.Downloader/AssetRipper.AssemblyDumper.Downloader.csproj" />
   <Project Path="Source/AssetRipper.AssemblyDumper.NativeEnumExtractor/AssetRipper.AssemblyDumper.NativeEnumExtractor.csproj" />
   <Project Path="Source/AssetRipper.AssemblyDumper.NuGetFixer/AssetRipper.AssemblyDumper.NuGetFixer.csproj" />
