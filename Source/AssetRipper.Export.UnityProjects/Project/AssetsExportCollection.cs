@@ -85,5 +85,5 @@ public abstract class AssetsExportCollection<T> : AssetExportCollection<T> where
 	/// <summary>
 	/// A one-to-one dictionary of export id's
 	/// </summary>
-	private readonly Dictionary<IUnityObjectBase, long> m_exportIDs = new();
+	protected readonly Dictionary<IUnityObjectBase, long> m_exportIDs = new();
 }

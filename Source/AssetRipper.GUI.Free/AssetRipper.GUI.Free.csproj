@@ -28,5 +28,17 @@
 	<ItemGroup>
 		<ProjectReference Include="..\AssetRipper.GUI.Web\AssetRipper.GUI.Web.csproj" />
 	</ItemGroup>
+	
+	<ItemGroup>
+	  <Content Update="Resources\packageGuids.json">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="Resources\BaseRiftProject.zip">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
 
 </Project>

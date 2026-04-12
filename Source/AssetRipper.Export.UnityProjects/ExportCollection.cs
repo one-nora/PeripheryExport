@@ -128,6 +128,9 @@ public abstract class ExportCollection : IExportCollection
 	public abstract IEnumerable<IUnityObjectBase> Assets { get; }
 	public virtual IEnumerable<IUnityObjectBase> ExportableAssets => Assets;
 	public abstract string Name { get; }
+	
+	public bool _exportable = true;
+	public bool Exportable => _exportable;
 
 	private const string MetaExtension = ".meta";
 	protected const string AssetExtension = "asset";

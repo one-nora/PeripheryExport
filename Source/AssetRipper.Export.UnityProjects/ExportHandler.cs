@@ -29,6 +29,35 @@ public class ExportHandler
 
 	public GameData Load(IReadOnlyList<string> paths, FileSystem fileSystem)
 	{
+		Settings.ImportSettings = new ImportSettings()
+		{
+			IgnoreStreamingAssets = false,
+			ScriptContentLevel = ScriptContentLevel.Level2,
+		};
+
+		Settings.ExportSettings = new ExportSettings()
+		{
+			AudioExportFormat = AudioExportFormat.Default,
+			ImageExportFormat = ImageExportFormat.Png,
+			LightmapTextureExportFormat = LightmapTextureExportFormat.Image,
+			SaveSettingsToDisk = true,
+			ScriptExportMode = ScriptExportMode.Decompiled,
+			ScriptLanguageVersion = ScriptLanguageVersion.AutoSafe,
+			ShaderExportMode = ShaderExportMode.Dummy,
+			SpriteExportMode = SpriteExportMode.Native,
+			TextExportMode = TextExportMode.Parse,
+		};
+
+		Settings.ProcessingSettings = new Processing.Configuration.ProcessingSettings()
+		{
+			BundledAssetsExportMode = Processing.Configuration.BundledAssetsExportMode.DirectExport,
+			EnableAssetDeduplication = true,
+			EnablePrefabOutlining = false,
+			EnableStaticMeshSeparation = true,
+		};
+
+		Settings.SaveToDefaultPath();
+		
 		if (paths.Count == 1)
 		{
 			Logger.Info(LogCategory.Import, $"Attempting to read files from {paths[0]}");
@@ -90,6 +119,10 @@ public class ExportHandler
 		yield return new PrefabProcessor();
 		yield return new SpriteProcessor();
 		yield return new ScriptableObjectProcessor();
+		
+		// Custom processor to merge possible assets with their package counterparts
+		yield return new MergePackageAssets();
+		yield return new RemoveAssetBundleNames();
 	}
 
 	public void Export(GameData gameData, string outputPath, FileSystem fileSystem)
@@ -114,7 +147,7 @@ public class ExportHandler
 			postExporter.DoPostExport(gameData, Settings, fileSystem);
 		}
 		Logger.Info(LogCategory.Export, "Finished post-export");
-
+		Logger.Info(LogCategory.Export, "You can close this window now");
 		static string GetListOfVersions(GameBundle gameBundle)
 		{
 			return string.Join(' ', gameBundle
@@ -134,9 +167,10 @@ public class ExportHandler
 	{
 		yield return new ProjectVersionPostExporter();
 		yield return new PackageManifestPostExporter();
-		yield return new StreamingAssetsPostExporter();
-		yield return new DllPostExporter();
-		yield return new PathIdMapExporter();
+		//yield return new StreamingAssetsPostExporter();
+		//yield return new DllPostExporter();
+		//yield return new PathIdMapExporter();
+		yield return new CopyBaseProject();
 	}
 
 	public GameData LoadAndProcess(IReadOnlyList<string> paths, FileSystem fileSystem)

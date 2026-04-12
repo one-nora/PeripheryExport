@@ -33,7 +33,7 @@ public class AudioMixerExportCollection : AssetsExportCollection<IAudioMixer>
 		}
 	}
 
-	private uint m_nextExportID;
+	private uint m_nextExportID = 2;
 
 	protected override long GenerateExportID(IUnityObjectBase asset)
 	{

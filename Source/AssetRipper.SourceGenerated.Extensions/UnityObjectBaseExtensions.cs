@@ -1,4 +1,5 @@
 ﻿using AssetRipper.Assets;
+using AssetRipper.SourceGenerated.Classes.ClassID_1001;
 
 namespace AssetRipper.SourceGenerated.Extensions;
 
@@ -18,6 +19,9 @@ public static class UnityObjectBaseExtensions
 
 	public static string? TryGetName(this IUnityObjectBase _this)
 	{
+		if (_this is IPrefabInstance prefabInstance)
+			return prefabInstance.MainAsset?.TryGetName();
+		
 		return (_this as INamed)?.Name;
 	}
 
