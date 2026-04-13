@@ -3,9 +3,11 @@ using AssetRipper.Assets.Cloning;
 using AssetRipper.Assets.IO.Writing;
 using AssetRipper.Assets.Metadata;
 using AssetRipper.Assets.Traversal;
+using AssetRipper.Import.Structure.Assembly.Managers;
 using AssetRipper.Import.Structure.Assembly.Serializable;
 using AssetRipper.Import.Structure.Assembly.TypeTrees;
 using AssetRipper.IO.Endian;
+using AssetRipper.IO.Files.SerializedFiles;
 using System.Diagnostics;
 
 namespace AssetRipper.Import.AssetCreation;
@@ -22,6 +24,12 @@ public abstract class TypeTreeObject : NullObject
 
 	private TypeTreeObject(AssetInfo assetInfo) : base(assetInfo)
 	{
+
+	}
+
+	public virtual void Read(ref EndianSpanReader reader, TransferInstructionFlags flags, IAssemblyManager assemblyManager)
+	{
+		
 	}
 
 	public sealed override void WriteRelease(AssetWriter writer) => ReleaseFields.WriteRelease(writer);
@@ -49,14 +57,19 @@ public abstract class TypeTreeObject : NullObject
 			Fields = SerializableTreeType.FromRootNode(root).CreateSerializableStructure();
 		}
 
+		public sealed override void Read(ref EndianSpanReader reader, TransferInstructionFlags flags, IAssemblyManager assemblyManager)
+		{
+			Fields.Read(ref reader, Collection.Version, Collection.Flags, assemblyManager);
+		}
+
 		public override void ReadRelease(ref EndianSpanReader reader)
 		{
-			Fields.Read(ref reader, Collection.Version, Collection.Flags);
+			Fields.Read(ref reader, Collection.Version, Collection.Flags, null);
 		}
 
 		public override void ReadEditor(ref EndianSpanReader reader)
 		{
-			Fields.Read(ref reader, Collection.Version, Collection.Flags);
+			Fields.Read(ref reader, Collection.Version, Collection.Flags, null);
 		}
 
 		public override void WalkStandard(AssetWalker walker)
@@ -86,15 +99,29 @@ public abstract class TypeTreeObject : NullObject
 			EditorFields = SerializableTreeType.FromRootNode(editorRoot).CreateSerializableStructure();
 		}
 
+		public sealed override void Read(ref EndianSpanReader reader, TransferInstructionFlags flags, IAssemblyManager assemblyManager)
+		{
+			if (flags.IsRelease())
+			{
+				ReleaseFields.Read(ref reader, Collection.Version, Collection.Flags, assemblyManager);
+				ConvertFields(ReleaseFields, EditorFields);
+			}
+			else
+			{
+				EditorFields.Read(ref reader, Collection.Version, Collection.Flags, assemblyManager);
+				ConvertFields(EditorFields, ReleaseFields);
+			}
+		}
+
 		public override void ReadRelease(ref EndianSpanReader reader)
 		{
-			ReleaseFields.Read(ref reader, Collection.Version, Collection.Flags);
-			ConvertFields(ReleaseFields, EditorFields);
+				ReleaseFields.Read(ref reader, Collection.Version, Collection.Flags, null);
+				ConvertFields(ReleaseFields, EditorFields);
 		}
 
 		public override void ReadEditor(ref EndianSpanReader reader)
 		{
-			EditorFields.Read(ref reader, Collection.Version, Collection.Flags);
+			EditorFields.Read(ref reader, Collection.Version, Collection.Flags, null);
 			ConvertFields(EditorFields, ReleaseFields);
 		}
 

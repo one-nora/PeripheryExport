@@ -3,6 +3,8 @@ using AssetRipper.Assets.Cloning;
 using AssetRipper.Assets.IO.Writing;
 using AssetRipper.Assets.Metadata;
 using AssetRipper.Assets.Traversal;
+using AssetRipper.Import.AssetCreation;
+using AssetRipper.Import.Structure.Assembly.Managers;
 using AssetRipper.IO.Endian;
 using AssetRipper.IO.Files.SerializedFiles;
 using AssetRipper.SerializationLogic;
@@ -119,6 +121,9 @@ public record struct SerializableValue([property: DebuggerBrowsable(DebuggerBrow
 
 	[DebuggerBrowsable(DebuggerBrowsableState.Never)]
 	public readonly SerializableStructure AsStructure => (SerializableStructure)CValue;
+
+	[DebuggerBrowsable(DebuggerBrowsableState.Never)]
+	public readonly SerializableRegistry AsRegistry => (SerializableRegistry)CValue;
 
 	[DebuggerBrowsable(DebuggerBrowsableState.Never)]
 	public readonly IPPtr AsPPtr => CValue as IPPtr ?? NullPPtr.Instance;
@@ -430,7 +435,7 @@ public record struct SerializableValue([property: DebuggerBrowsable(DebuggerBrow
 		return result;
 	}
 
-	public void Read(ref EndianSpanReader reader, UnityVersion version, TransferInstructionFlags flags, int depth, in SerializableType.Field etalon)
+	public void Read(ref EndianSpanReader reader, UnityVersion version, TransferInstructionFlags flags, IAssemblyManager assemblyManager, int depth, in SerializableType.Field etalon, bool isInsideManagedRegistry = false)
 	{
 		switch (etalon.ArrayDepth)
 		{
@@ -477,13 +482,13 @@ public record struct SerializableValue([property: DebuggerBrowsable(DebuggerBrow
 						AsString = reader.ReadUtf8StringAligned().String;
 						break;
 					case PrimitiveType.Complex:
-						AsAsset = CreateAndReadComplexStructure(ref reader, version, flags, depth, etalon);
+						AsAsset = CreateAndReadComplexStructure(ref reader, version, flags, assemblyManager, depth, etalon, isInsideManagedRegistry);
 						break;
 					case PrimitiveType.Pair:
 					case PrimitiveType.MapPair:
 						{
 							SerializablePair pair = new(etalon.Type, depth + 1);
-							pair.Read(ref reader, version, flags);
+							pair.Read(ref reader, version, flags, assemblyManager);
 							AsPair = pair;
 						}
 						break;
@@ -548,7 +553,7 @@ public record struct SerializableValue([property: DebuggerBrowsable(DebuggerBrow
 							for (int i = 0; i < count; i++)
 							{
 								SerializablePair pair = new(etalon.Type, depth + 1);
-								pair.Read(ref reader, version, flags);
+								pair.Read(ref reader, version, flags, assemblyManager);
 								pairs[i] = pair;
 							}
 
@@ -563,7 +568,7 @@ public record struct SerializableValue([property: DebuggerBrowsable(DebuggerBrow
 							IUnityAssetBase[] structures = CreateArray<IUnityAssetBase>(count);
 							for (int i = 0; i < count; i++)
 							{
-								structures[i] = CreateAndReadComplexStructure(ref reader, version, flags, depth, etalon);
+								structures[i] = CreateAndReadComplexStructure(ref reader, version, flags, assemblyManager, depth, etalon, isInsideManagedRegistry);
 							}
 							AsAssetArray = structures;
 						}
@@ -628,7 +633,7 @@ public record struct SerializableValue([property: DebuggerBrowsable(DebuggerBrow
 								IUnityAssetBase[] structures = CreateArray<IUnityAssetBase>(innerCount);
 								for (int j = 0; j < innerCount; j++)
 								{
-									structures[j] = CreateAndReadComplexStructure(ref reader, version, flags, depth, etalon);
+									structures[j] = CreateAndReadComplexStructure(ref reader, version, flags, assemblyManager, depth, etalon, isInsideManagedRegistry);
 								}
 								result[i] = structures;
 
@@ -654,12 +659,20 @@ public record struct SerializableValue([property: DebuggerBrowsable(DebuggerBrow
 			reader.Align();
 		}
 
-		static IUnityAssetBase CreateAndReadComplexStructure(ref EndianSpanReader reader, UnityVersion version, TransferInstructionFlags flags, int depth, SerializableType.Field etalon)
+		static IUnityAssetBase CreateAndReadComplexStructure(ref EndianSpanReader reader, UnityVersion version, TransferInstructionFlags flags, IAssemblyManager assemblyManager, int depth, SerializableType.Field etalon, bool isInsideManagedRegistry)
 		{
 			IUnityAssetBase asset = etalon.Type.CreateInstance(depth + 1, version);
 			if (asset is SerializableStructure structure)
 			{
-				structure.Read(ref reader, version, flags);
+				structure.Read(ref reader, version, flags, assemblyManager, isInsideManagedRegistry);
+			}
+			else if (asset is SerializableRegistry registry)
+			{
+				registry.Read(ref reader, version, flags, assemblyManager, isInsideManagedRegistry);
+			}
+			else if (asset is TypeTreeObject ttobj)
+			{
+				ttobj.Read(ref reader, flags, assemblyManager);
 			}
 			else
 			{

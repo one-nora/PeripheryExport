@@ -16,7 +16,9 @@ public static class ReferenceAssemblies
 			or "Assembly-CSharp-Editor"
 			or "Assembly-CSharp-Editor-firstpass"
 			or "Assembly-UnityScript"
-			or "Assembly-UnityScript-firstpass";
+			or "Assembly-UnityScript-firstpass"
+			or "EndlessHints"
+			or "RailRoute";
 	}
 
 	public static Dictionary<string, UnityGuid> GetReferenceAssemblies(IAssemblyManager assemblyManager, UnityVersion version)
