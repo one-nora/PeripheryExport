@@ -7,6 +7,7 @@ using AssetRipper.SerializationLogic;
 using AssetRipper.SourceGenerated.Classes.ClassID_115;
 using AssetRipper.SourceGenerated.Subclasses.Hash128;
 using System.Buffers.Binary;
+using System.Diagnostics;
 
 namespace AssetRipper.Import.Structure.Assembly;
 

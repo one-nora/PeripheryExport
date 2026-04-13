@@ -21,6 +21,10 @@ public readonly partial struct FieldSerializer
 	{
 		Stack<MonoType> typeStack = new();
 		bool returnValue = TryCreateSerializableType(typeDefinition, typeCache, typeStack, out result, out failureReason);
+		if (returnValue)
+		{
+			result!.TrySetManagedRegistry();
+		}
 		Debug.Assert(typeStack.Count == 0, "The type stack should be empty after processing.");
 		return returnValue;
 	}
@@ -107,6 +111,7 @@ public readonly partial struct FieldSerializer
 		if (TryCreateSerializableFields(typeStack, monoType, fields, GetFieldsInType(typeDefinition), typeCache, out failureReason))
 		{
 			monoType.SetDepth();
+			monoType.SetHasManagedReference();
 			typeStack.Pop();
 			result = monoType;
 			return true;
@@ -172,6 +177,7 @@ public readonly partial struct FieldSerializer
 		if (TryCreateSerializableFields(typeStack, monoType, fields, GetFieldsInType(genericInst), typeCache, out failureReason))
 		{
 			monoType.SetDepth();
+			monoType.SetHasManagedReference();
 			typeStack.Pop();
 			result = monoType;
 			return true;
@@ -198,11 +204,11 @@ public readonly partial struct FieldSerializer
 			(FieldDefinition fieldDefinition, TypeSignature fieldType) = pair;
 			if (WillUnitySerialize(fieldDefinition, fieldType))
 			{
-				if (fieldDefinition.HasSerializeReferenceAttribute())
-				{
-					failureReason = $"{fieldDefinition.DeclaringType?.FullName}.{fieldDefinition.Name} uses the [SerializeReference] attribute, which is currently not supported.";
-					return false;
-				}
+				// if (fieldDefinition.HasSerializeReferenceAttribute())
+				// {
+					// failureReason = $"{fieldDefinition.DeclaringType?.FullName}.{fieldDefinition.Name} uses the [SerializeReference] attribute, which is currently not supported.";
+					// return false;
+				// }
 
 				int arrayDepth = 0;
 				if (fieldDefinition.HasFixedBufferAttribute())
@@ -216,7 +222,13 @@ public readonly partial struct FieldSerializer
 					fieldType = customModifierType.BaseType;
 				}
 
-				if (TryCreateSerializableField(typeStack, fieldDefinition.Name ?? "", fieldType, arrayDepth, typeCache, out Field field, out failureReason))
+				if (fieldType.Namespace is null && fieldType.Name == "ManagedReferencesRegistry")
+				{
+					fields.Add(new(SerializableRegistryType.Shared, 0, fieldDefinition.Name ?? "", true));
+					continue;
+				}
+
+				if (TryCreateSerializableField(typeStack, fieldDefinition.Name ?? "", fieldType, arrayDepth, fieldDefinition.HasSerializeReferenceAttribute(), typeCache, out Field field, out failureReason))
 				{
 					if (monoType.IsCyclicReference(field.Type))
 					{
@@ -266,6 +278,7 @@ public readonly partial struct FieldSerializer
 		string name,
 		TypeSignature typeSignature,
 		int arrayDepth,
+		bool isManagedReference,
 		Dictionary<ITypeDefOrRef, SerializableType> typeCache,
 		out Field result,
 		[NotNullWhen(false)] out string? failureReason)
@@ -280,6 +293,17 @@ public readonly partial struct FieldSerializer
 					CorLibTypeSignature enumValueType = (CorLibTypeSignature?)typeDefinition.GetEnumUnderlyingType() ?? throw new("Failed to resolve enum underlying type.");
 					PrimitiveType primitiveType = enumValueType.ToPrimitiveType();
 					fieldType = SerializablePrimitiveType.GetOrCreate(primitiveType);
+				}
+				else if (isManagedReference)
+				{
+					if (arrayDepth > 0)
+					{
+						fieldType = SerializableReferenceType.Array;
+					}
+					else
+					{
+						fieldType = SerializableReferenceType.Single;
+					}
 				}
 				else if (typeDefinition.InheritsFromObject())
 				{
@@ -310,9 +334,28 @@ public readonly partial struct FieldSerializer
 				return true;
 
 			case SzArrayTypeSignature szArrayTypeSignature:
-				return TryCreateSerializableField(typeStack, name, szArrayTypeSignature.BaseType, arrayDepth + 1, typeCache, out result, out failureReason);
+				return TryCreateSerializableField(typeStack, name, szArrayTypeSignature.BaseType, arrayDepth + 1, isManagedReference, typeCache, out result, out failureReason);
 
 			case GenericInstanceTypeSignature genericInstanceTypeSignature:
+				if (genericInstanceTypeSignature.GenericType is { Namespace.Value: "System.Collections.Generic", Name.Value: "List`1" })
+				{
+					return TryCreateSerializableField(typeStack, name, genericInstanceTypeSignature.TypeArguments[0], arrayDepth + 1, isManagedReference, typeCache, out result, out failureReason);
+				}
+				else if (isManagedReference)
+				{
+					if (arrayDepth > 0)
+					{
+						result = new Field(SerializableReferenceType.Array, arrayDepth, name, true);
+						failureReason = null;
+						return true;
+					}
+					else
+					{
+						result = new Field(SerializableReferenceType.Single, arrayDepth, name, true);
+						failureReason = null;
+						return true;
+					}
+				}
 				if (genericInstanceTypeSignature.InheritsFromObject())
 				{
 					result = new Field(SerializablePointerType.Shared, arrayDepth, name, true);
@@ -324,10 +367,6 @@ public readonly partial struct FieldSerializer
 					result = new Field(cachedGenericMonoType, arrayDepth, name, true);
 					failureReason = null;
 					return true;
-				}
-				else if (genericInstanceTypeSignature.GenericType is { Namespace.Value: "System.Collections.Generic", Name.Value: "List`1" })
-				{
-					return TryCreateSerializableField(typeStack, name, genericInstanceTypeSignature.TypeArguments[0], arrayDepth + 1, typeCache, out result, out failureReason);
 				}
 				else if (TryCreateSerializableType(genericInstanceTypeSignature, typeCache, typeStack, out SerializableType? monoType, out failureReason))
 				{

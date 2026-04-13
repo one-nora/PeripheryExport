@@ -31,4 +31,22 @@ internal sealed class MonoType : SerializableType
 		}
 		MaxDepth = maxDepth;
 	}
+
+	internal void SetHasManagedReference()
+	{
+		Debug.Assert(HasManagedReference == false, "Managed references have already been searched.");
+
+		if (Fields.Count > 0 && Fields[^1] is { Type.Name: "ManagedReferencesRegistry", Name: "references" })
+		{
+			HasManagedReference = true;
+			return;
+		}
+
+		bool hasManagedReference = false;
+		foreach (Field field in Fields)
+		{
+			hasManagedReference |= field.Type.IsManagedReference() || field.Type.HasManagedReference;
+		}
+		HasManagedReference = hasManagedReference;
+	}
 }

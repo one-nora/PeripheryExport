@@ -40,6 +40,24 @@ public abstract class SerializableType
 		return MonoUtils.IsObject(Namespace, Name) || MonoUtils.IsMonoPrime(Namespace, Name);
 	}
 
+	public bool IsManagedReference()
+	{
+		return Namespace is null && (Name == "managedReference" || Name == "managedRefArrayItem");
+	}
+
+	public bool IsManagedRegistry()
+	{
+		return Namespace is null && Name == "ManagedReferencesRegistry";
+	}
+
+	public void TrySetManagedRegistry()
+	{
+		if (HasManagedReference && (Fields[^1].Name != "references" || !Fields[^1].Type.IsManagedRegistry()))
+		{
+			Fields = Fields.Append(new(SerializableRegistryType.Shared, 0, "references", true)).ToList();
+		}
+	}
+
 	public override string ToString() => FullName;
 
 	public string FullName => string.IsNullOrEmpty(Namespace) ? Name : $"{Namespace}.{Name}";
@@ -48,6 +66,7 @@ public abstract class SerializableType
 	public PrimitiveType Type { get; }
 	public string Name { get; }
 	public IReadOnlyList<Field> Fields { get; protected set; } = [];
+	public bool HasManagedReference { get; protected set; } = false;
 	public virtual int Version => 1;
 	public virtual bool FlowMappedInYaml => false;
 	/// <summary>
