@@ -90,7 +90,6 @@ namespace AssetRipper.Export.UnityProjects.Project
 				
 				foreach (AssemblyDefinition assembly in assemblies)
 				{
-					Logger.Info(LogCategory.Export, $"{assembly.Name}");
 					if (pluginsToCopy.Contains(assembly.Name))
 					{
 						string filepath = fileSystem.Path.Join(pluginsDirectory, SpecialFileNames.AddAssemblyFileExtension(assembly.Name!));
