@@ -1,4 +1,4 @@
-# PeripheryExport
+# Periphery Export
 
 This project is a fork of [Asset Ripper](https://github.com/AssetRipper/AssetRipper), specialized for creating a playable unity project for White Knuckle.
 
