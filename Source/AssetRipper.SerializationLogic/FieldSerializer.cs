@@ -99,8 +99,12 @@ public readonly partial struct FieldSerializer
 			}
 			else
 			{
-				fields.EnsureCapacity(baseType.Fields.Count + typeDefinition.Fields.Count);
-				fields.AddRange(baseType.Fields);
+				bool hasManagedRegistry = baseType.Fields.Count > 0 && baseType.Fields[^1].Type.IsManagedRegistry();
+				
+				fields.EnsureCapacity(baseType.Fields.Count + typeDefinition.Fields.Count - (hasManagedRegistry ? 1 : 0));
+				fields.AddRange(hasManagedRegistry
+					? baseType.Fields.Take(baseType.Fields.Count - 1)
+					: baseType.Fields);
 			}
 		}
 		else
@@ -165,8 +169,12 @@ public readonly partial struct FieldSerializer
 			}
 			else
 			{
-				fields.EnsureCapacity(baseMonoType.Fields.Count + genericInst.GenericType.Resolve()!.Fields.Count);
-				fields.AddRange(baseMonoType.Fields);
+				bool hasManagedRegistry = baseMonoType.Fields.Count > 0 && baseMonoType.Fields[^1].Type.IsManagedRegistry();
+				
+				fields.EnsureCapacity(baseMonoType.Fields.Count + genericInst.GenericType.Resolve()!.Fields.Count - (hasManagedRegistry ? 1 : 0));
+				fields.AddRange(hasManagedRegistry
+					? baseMonoType.Fields.Take(baseMonoType.Fields.Count - 1)
+					: baseMonoType.Fields);
 			}
 		}
 		else
