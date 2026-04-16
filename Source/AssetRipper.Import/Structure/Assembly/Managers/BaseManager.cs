@@ -208,16 +208,11 @@ public partial class BaseManager : IAssemblyManager
 				typeCache = new(SignatureComparer.Default);
 				monoTypeCache[fieldSerializer] = typeCache;
 			}
-
+			
 			if (typeCache.TryGetValue(type, out SerializableType? monoType)
-				|| fieldSerializer.TryCreateSerializableType(type, typeCache, out monoType, out failureReason))
+			     || fieldSerializer.TryCreateSerializableType(type, typeCache, out monoType, out failureReason))
 			{
-				// if (monoType.Fields.Count > 0 && monoType.Fields[^1] is { Type.Name: "ManagedReferencesRegistry", Name: "references" })
-				// {
-					// failureReason = $"MonoBehaviour has a field with the [SerializeReference] attribute, which is not currently supported.";
-					// scriptType = null;
-					// return false;
-				// }
+				monoType.TrySetManagedRegistry();
 				scriptType = monoType;
 				failureReason = null;
 				return true;
