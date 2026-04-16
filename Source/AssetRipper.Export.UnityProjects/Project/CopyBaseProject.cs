@@ -67,7 +67,6 @@ namespace AssetRipper.Export.UnityProjects.Project
 				"Clipper2Lib",
 				"Coffee.SoftMaskForUGUI",
 				"Coffee.SoftMaskForUGUI.R",
-				"DarkMachineUI",
 				"Drawing",
 				"Facepunch.Steamworks.Win64",
 				"Pathfinding.Ionic.Zip.Reduced",
