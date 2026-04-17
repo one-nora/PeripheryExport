@@ -217,7 +217,7 @@ public readonly partial struct FieldSerializer
 					// failureReason = $"{fieldDefinition.DeclaringType?.FullName}.{fieldDefinition.Name} uses the [SerializeReference] attribute, which is currently not supported.";
 					// return false;
 				// }
-
+				
 				int arrayDepth = 0;
 				if (fieldDefinition.HasFixedBufferAttribute())
 				{
@@ -238,38 +238,51 @@ public readonly partial struct FieldSerializer
 
 				if (TryCreateSerializableField(typeStack, fieldDefinition.Name ?? "", fieldType, arrayDepth, fieldDefinition.HasSerializeReferenceAttribute(), typeCache, out Field field, out failureReason))
 				{
-					if (monoType.IsCyclicReference(field.Type))
+					// Cyclical references arent handled properly
+					// https://github.com/AssetRipper/AssetRipper/issues/2123
+					// So just add them anyway
+					// https://github.com/AssetRipper/AssetRipper/pull/2121
+					bool isKnownCycle = monoType.IsCyclicReference(field.Type);
+					if (!isKnownCycle && !field.Type.IsMaxDepthKnown)
 					{
-						// Infinite recursion disqualifies a field from serialization.
-					}
-					else if (!field.Type.IsMaxDepthKnown)
-					{
-						// New cycle reference detected.
-						List<MonoType> cycleList = new(typeStack.Count);
-						foreach (MonoType monoTypeInStack in typeStack)
+						MonoType? matchingTypeInStack = null;
+						foreach (MonoType candidate in typeStack)
 						{
-							cycleList.Add(monoTypeInStack);
-							if (monoTypeInStack == field.Type)
+							if (candidate == field.Type)
 							{
+								matchingTypeInStack = candidate;
 								break;
 							}
 						}
 
-						for (int i = 0; i < cycleList.Count; i++)
+						if (matchingTypeInStack is not null)
 						{
-							for (int j = 0; j <= i; j++)
+							// New cycle reference detected in the active recursion stack.
+							List<MonoType> cycleList = new(typeStack.Count);
+							foreach (MonoType monoTypeInStack in typeStack)
 							{
-								SerializableType type1 = cycleList[i];
-								SerializableType type2 = cycleList[j];
-								type1.AddCyclicReference(type2);
-								type2.AddCyclicReference(type1);
+								cycleList.Add(monoTypeInStack);
+								if (monoTypeInStack == matchingTypeInStack)
+								{
+									break;
+								}
+							}
+
+							for (int i = 0; i < cycleList.Count; i++)
+							{
+								for (int j = 0; j <= i; j++)
+								{
+									SerializableType type1 = cycleList[i];
+									SerializableType type2 = cycleList[j];
+									type1.AddCyclicReference(type2);
+									type2.AddCyclicReference(type1);
+								}
 							}
 						}
 					}
-					else
-					{
-						fields.Add(field);
-					}
+
+					// Keep fields even when they participate in a cycle; cycle metadata is tracked separately.
+					fields.Add(field);
 				}
 				else
 				{
