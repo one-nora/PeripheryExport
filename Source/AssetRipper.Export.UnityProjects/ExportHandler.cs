@@ -57,6 +57,7 @@ public class ExportHandler
 		};
 
 		Settings.SaveToDefaultPath();
+		Settings.LogConfigurationValues();
 		
 		if (paths.Count == 1)
 		{
