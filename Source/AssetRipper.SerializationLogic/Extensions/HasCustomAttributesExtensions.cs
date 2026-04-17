@@ -19,6 +19,11 @@ internal static class HasCustomAttributesExtensions
 		return owner.HasCustomAttribute("System.Runtime.CompilerServices", "FixedBufferAttribute");
 	}
 
+	public static bool HasDoNotSerializeAttribute(this IHasCustomAttribute owner)
+	{
+		return owner.HasCustomAttribute("Unity.VisualScripting", "DoNotSerializeAttribute");
+	}
+	
 	public static CustomAttribute? GetCustomAttribute(this IHasCustomAttribute owner, string? ns, string? name)
 	{
 		for (int i = 0; i < owner.CustomAttributes.Count; i++)

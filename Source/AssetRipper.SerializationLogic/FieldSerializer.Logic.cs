@@ -54,6 +54,11 @@ public readonly partial struct FieldSerializer(UnityVersion version)
 			return false;
 		}
 
+		if (fieldDefinition.HasDoNotSerializeAttribute())
+		{
+			return false;
+		}
+
 		// Don't try to resolve types that come from Windows assembly,
 		// as serialization weaver will fail to resolve that (due to it being in platform specific SDKs)
 		if (ShouldNotTryToResolve(fieldDefinition.Signature!.FieldType))
