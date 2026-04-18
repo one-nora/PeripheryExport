@@ -62,6 +62,7 @@
     <File Path=".github/workflows/publish.yml" />
     <File Path=".github/workflows/test.yml" />
   </Folder>
+  <Project Path="Source/AssetRipper.Addressables/AssetRipper.Addressables.csproj" />
   <Project Path="AssetRipper.PackageGuid.Generator/AssetRipper.PackageGuid.Generator.csproj" />
   <Project Path="AssetRipper.PackageGuid/AssetRipper.PackageGuid.csproj" />
   <Project Path="Source/AssetRipper.AssemblyDumper.Downloader/AssetRipper.AssemblyDumper.Downloader.csproj" />
