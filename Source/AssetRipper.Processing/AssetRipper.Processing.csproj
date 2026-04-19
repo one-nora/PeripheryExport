@@ -12,7 +12,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\AssetRipper.PackageGuid\AssetRipper.PackageGuid.csproj" />
-		<ProjectReference Include="..\AssetRipper.Addressables\AssetRipper.Addressables.csproj" />
 		<ProjectReference Include="..\AssetRipper.Import\AssetRipper.Import.csproj" />
 		<ProjectReference Include="..\AssetRipper.Processing.SourceGenerator\AssetRipper.Processing.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
