@@ -30,6 +30,9 @@ namespace AssetRipper.Export.UnityProjects.Project
 			{
 				zip.ExtractToDirectory(settings.ProjectRootPath, true);
 			}
+			
+			ReplaceShaderCopiesWithZipFiles(baseProjectPath, settings, fileSystem);
+			CopyModsFolder(gameData, settings, fileSystem);
 		}
 
 		private void DeleteScripts(FullConfiguration settings)
@@ -95,6 +98,88 @@ namespace AssetRipper.Export.UnityProjects.Project
 						assemblyManager.SaveAssembly(assembly, filepath, fileSystem);
 					}
 				}
+			}
+		}
+		
+		private void ReplaceShaderCopiesWithZipFiles(string zipPath, FullConfiguration settings, FileSystem fileSystem)
+		{
+			// Load all .shader files from Assets/Shader inside the zip
+			// Then replace the copies like xshade_0.shader with the original copy while keeping the name correctly
+			Dictionary<string, byte[]> zipShaders = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+
+			using (ZipArchive archive = ZipFile.OpenRead(zipPath))
+			{
+				foreach (ZipArchiveEntry entry in archive.Entries)
+				{
+					if (!entry.FullName.StartsWith("Assets/Shader/", StringComparison.OrdinalIgnoreCase))
+						continue;
+
+					if (!entry.FullName.EndsWith(".shader", StringComparison.OrdinalIgnoreCase))
+						continue;
+
+					string fileName = Path.GetFileName(entry.FullName);
+					using (Stream s = entry.Open())
+					using (MemoryStream ms = new MemoryStream())
+					{
+						s.CopyTo(ms);
+						zipShaders[fileName] = ms.ToArray();
+					}
+				}
+			}
+
+			string shadersDirectory = fileSystem.Path.Join(settings.AssetsPath, "Shader");
+			if (!Directory.Exists(shadersDirectory))
+				Directory.CreateDirectory(shadersDirectory);
+			
+			// Read target folder and replace xshader_0.shader with xshader.shader from zip
+			foreach (string filePath in Directory.EnumerateFiles(shadersDirectory, "*.shader", SearchOption.TopDirectoryOnly))
+			{
+				string fileName = Path.GetFileName(filePath);
+
+				string nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+
+				// Find last underscore
+				int underscoreIndex = nameWithoutExt.LastIndexOf('_');
+				if (underscoreIndex == -1)
+					continue;
+
+				// Check if suffix is a number
+				string suffix = nameWithoutExt.Substring(underscoreIndex + 1);
+				if (!int.TryParse(suffix, out _))
+					continue;
+
+				// Base name (before _number)
+				string baseName = nameWithoutExt.Substring(0, underscoreIndex);
+				string sourceName = baseName + ".shader";
+
+				if (zipShaders.TryGetValue(sourceName, out byte[] data))
+				{
+					File.WriteAllBytes(filePath, data);
+				}
+			}
+		}
+
+		private void CopyModsFolder(GameData gameData, FullConfiguration settings, FileSystem fileSystem)
+		{
+			var modsDirectory = fileSystem.Path.Join(gameData.PlatformStructure.GameDataPath, "Mods");
+			var destDirectory = fileSystem.Path.Join(settings.AssetsPath, "Mods");
+
+			if (!Directory.Exists(modsDirectory))
+				return;
+
+			if (!Directory.Exists(destDirectory))
+				Directory.CreateDirectory(destDirectory);
+			
+			foreach (string filePath in Directory.EnumerateFiles(modsDirectory, "*", SearchOption.AllDirectories))
+			{
+				string relativePath = Path.GetRelativePath(modsDirectory, filePath);
+				string destinationPath = Path.Combine(destDirectory, relativePath);
+
+				string? destinationFolder = Path.GetDirectoryName(destinationPath);
+				if (!string.IsNullOrEmpty(destinationFolder))
+					Directory.CreateDirectory(destinationFolder);
+
+				File.Copy(filePath, destinationPath, true);	
 			}
 		}
 	}
