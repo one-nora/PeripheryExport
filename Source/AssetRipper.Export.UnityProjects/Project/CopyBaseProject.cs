@@ -170,8 +170,16 @@ namespace AssetRipper.Export.UnityProjects.Project
 			if (!Directory.Exists(destDirectory))
 				Directory.CreateDirectory(destDirectory);
 			
+			string toolsDirectory = Path.Combine(modsDirectory, "Tools");
+			
 			foreach (string filePath in Directory.EnumerateFiles(modsDirectory, "*", SearchOption.AllDirectories))
 			{
+				// Skip Mods/Tools
+				if (filePath.StartsWith(toolsDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+				{
+					continue;
+				}
+				
 				string relativePath = Path.GetRelativePath(modsDirectory, filePath);
 				string destinationPath = Path.Combine(destDirectory, relativePath);
 
