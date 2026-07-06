@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.IO.Compression;
 using AsmResolver.DotNet;
 
-namespace AssetRipper.Export.UnityProjects.Project
+namespace AssetRipper.Export.UnityProjects.Project 
 {
 	public sealed class CopyBaseProject : IPostExporter
 	{
@@ -16,7 +16,8 @@ namespace AssetRipper.Export.UnityProjects.Project
 
 		public void DoPostExport(GameData gameData, FullConfiguration settings, FileSystem fileSystem)
 		{
-			DeleteScripts(settings);
+			DeleteScripts(settings, fileSystem);
+			FixPerkScript(settings, fileSystem);
 			CopyOverPlugins(gameData, settings, fileSystem);
 			
 			string baseProjectPath = RIFT_PROJECT_PATH;
@@ -35,7 +36,7 @@ namespace AssetRipper.Export.UnityProjects.Project
 			CopyModsFolder(gameData, settings, fileSystem);
 		}
 
-		private void DeleteScripts(FullConfiguration settings)
+		private void DeleteScripts(FullConfiguration settings, FileSystem fileSystem)
 		{
 			List<string> scriptsToKeep = new List<string>()
 			{
@@ -50,14 +51,23 @@ namespace AssetRipper.Export.UnityProjects.Project
 				"PrefabBaker",
 			};
 			
-			string scriptsDirectory = Path.Combine(settings.AssetsPath, "Scripts");
-            if (Directory.Exists(scriptsDirectory))
+			string scriptsDirectory = fileSystem.Path.Join(settings.AssetsPath, "Scripts");
+			if (!Directory.Exists(scriptsDirectory))
+				return;
+			
+            foreach (string dir in Directory.GetDirectories(scriptsDirectory))
             {
-            	foreach (string dir in Directory.GetDirectories(scriptsDirectory))
-            	{
-            		if (!scriptsToKeep.Contains(Path.GetFileName(dir)))
-            			Directory.Delete(dir, true);
-            	}
+            	if (!scriptsToKeep.Contains(Path.GetFileName(dir)))
+            		Directory.Delete(dir, true);
+            }
+            
+            // Delete generated JobReflectionRegistration files
+            foreach (string file in Directory.GetFiles(
+	                     scriptsDirectory,
+	                     "__JobReflectionRegistrationOutput__*.cs",
+	                     SearchOption.AllDirectories))
+            {
+	            File.Delete(file);
             }
 		}
 
@@ -189,6 +199,51 @@ namespace AssetRipper.Export.UnityProjects.Project
 
 				File.Copy(filePath, destinationPath, true);	
 			}
+		}
+
+		private void FixPerkScript(FullConfiguration settings, FileSystem fileSystem)
+		{
+			string assemblyCSharpDirectory = fileSystem.Path.Join(settings.AssetsPath, "Scripts", "Assembly-CSharp");
+			if (!Directory.Exists(assemblyCSharpDirectory))
+				return;
+
+			string perkFile = fileSystem.Path.Join(assemblyCSharpDirectory, "Perk.cs");
+			if (!File.Exists(perkFile))
+				return;
+
+			string modifiedFile = File.ReadAllText(perkFile);
+
+			string oldText = @"
+		if (ENT_Player.GetPlayer() != null)
+		{
+			this = ENT_Player.GetPlayer().GetPerk(id);
+		}
+		if (this == null)
+		{
+			stackAmount = 0;
+			this = this;
+		}
+";
+			string newText = @"
+		Perk playerPerk = ENT_Player.GetPlayer().GetPerk(id);
+";
+			modifiedFile = modifiedFile.Replace(oldText, newText);
+			
+			modifiedFile = modifiedFile.Replace("if (this == null)", "if (playerPerk == null)");
+			modifiedFile = modifiedFile.Replace(
+				"foreach (BuffContainer.Buff buff3 in this.buff.buffs)",
+				"foreach (BuffContainer.Buff buff3 in playerPerk.buff.buffs)");
+			
+			modifiedFile = modifiedFile.Replace(
+				"for (int i = 0; i < stackAmount; i++)",
+				"for (int i = 0; i < playerPerk.stackAmount; i++)");
+
+			modifiedFile = modifiedFile.Replace(
+				"float num2 = multiplierCurve.Evaluate((float)stackAmount / (float)stackMax);",
+				"float num2 = multiplierCurve.Evaluate((float)playerPerk.stackAmount / (float)stackMax);");
+			
+			
+			File.WriteAllText(perkFile, modifiedFile);
 		}
 	}
 }
