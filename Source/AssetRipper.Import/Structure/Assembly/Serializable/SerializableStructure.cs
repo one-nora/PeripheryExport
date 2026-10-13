@@ -4,7 +4,6 @@ using AssetRipper.Assets.IO.Writing;
 using AssetRipper.Assets.Metadata;
 using AssetRipper.Assets.Traversal;
 using AssetRipper.Import.Logging;
-using AssetRipper.Import.Structure.Assembly.Managers;
 using AssetRipper.IO.Endian;
 using AssetRipper.IO.Files.SerializedFiles;
 using AssetRipper.SerializationLogic;
@@ -25,7 +24,7 @@ public sealed class SerializableStructure : UnityAssetBase, IDeepCloneable
 		Fields = new SerializableValue[type.Fields.Count];
 	}
 
-	public void Read(ref EndianSpanReader reader, UnityVersion version, TransferInstructionFlags flags, IAssemblyManager assemblyManager, bool InsideManagedRegistry = false)
+	public void Read(ref EndianSpanReader reader, UnityVersion version, TransferInstructionFlags flags)
 	{
 		Version = version;
 		for (int i = 0; i < Fields.Length; i++)
@@ -33,7 +32,7 @@ public sealed class SerializableStructure : UnityAssetBase, IDeepCloneable
 			SerializableType.Field etalon = Type.Fields[i];
 			if (IsAvailable(etalon))
 			{
-				Fields[i].Read(ref reader, version, flags, assemblyManager, Depth, etalon, InsideManagedRegistry);
+				Fields[i].Read(ref reader, version, flags, Depth, etalon);
 			}
 		}
 	}
@@ -118,11 +117,11 @@ public sealed class SerializableStructure : UnityAssetBase, IDeepCloneable
 		return true;
 	}
 
-	public bool TryRead(ref EndianSpanReader reader, IMonoBehaviour monoBehaviour, IAssemblyManager assemblyManager)
+	public bool TryRead(ref EndianSpanReader reader, IMonoBehaviour monoBehaviour)
 	{
 		try
 		{
-			Read(ref reader, monoBehaviour.Collection.Version, monoBehaviour.Collection.Flags, assemblyManager);
+			Read(ref reader, monoBehaviour.Collection.Version, monoBehaviour.Collection.Flags);
 		}
 		catch (Exception ex)
 		{

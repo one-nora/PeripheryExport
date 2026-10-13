@@ -17,11 +17,7 @@ public abstract class AssetGroup : UnityObjectBase
 		MainAsset = this;
 		foreach (IUnityObjectBase asset in Assets)
 		{
-			// Debug.Assert(asset.MainAsset is null || asset.MainAsset == this, "Asset already has a main asset assigned.");
-			if (asset.MainAsset is not null && asset.MainAsset != this)
-			{
-				continue;
-			}
+			Debug.Assert(asset.MainAsset is null || asset.MainAsset == this, "Asset already has a main asset assigned.");
 			asset.MainAsset = this;
 		}
 	}

@@ -22,12 +22,6 @@ public static class SerializableTypeExtensions
 		{
 			return PPtr_Object.Create(version);
 		}
-		if (type.IsManagedRegistry())
-		{
-			SerializableRegistry registry = new(depth);
-			registry.InitializeFields(version);
-			return registry;
-		}
 		SerializableStructure structure = new(type, depth);
 		structure.InitializeFields(version);
 		return structure;
