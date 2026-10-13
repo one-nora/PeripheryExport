@@ -5,8 +5,8 @@ using System.Text.Json.Serialization;
 
 namespace AssetRipper.AssemblyDumper.Utils;
 
-[JsonConverter(typeof(VersionedListConverterFactory))]
-public sealed class VersionedList<T> : IList<KeyValuePair<UnityVersion, T?>>
+[JsonConverter(typeof(VersionedListConverter<>))]
+public sealed class VersionedList<T> : IList<KeyValuePair<UnityVersion, T?>>, IReadOnlyList<KeyValuePair<UnityVersion, T?>>
 {
 	private readonly List<KeyValuePair<UnityVersion, T?>> _list = new();
 	private readonly Func<T?, T?> cloneFactory;
@@ -183,6 +183,10 @@ public sealed class VersionedList<T> : IList<KeyValuePair<UnityVersion, T?>>
 		if (Count == 0)
 		{
 			throw new InvalidOperationException();
+		}
+		if (divisionPoint == UnityVersion.MaxVersion)
+		{
+			return;
 		}
 
 		if (divisionPoint < this[0].Key)
